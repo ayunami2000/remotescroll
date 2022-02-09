@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>remotescroll</title>
+  <style>
+    *{overflow:hidden;overscroll-behavior:contain;touch-action:none;}
+    div{width:100vw;height:100vh;overflow:auto;-webkit-overflow-scrolling:touch;}
+  </style>
+</head>
+<body>
+  <div> </div>
+  <script>
+    function setCookie(cname, cvalue, exsecs) {
+      const d = new Date();
+      d.setTime(d.getTime() + (exsecs*1000));
+      let expires = "expires="+ d.toUTCString();
+      document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+    }
+    function getCookie(cname) {
+      let name = cname + "=";
+      let decodedCookie = decodeURIComponent(document.cookie);
+      let ca = decodedCookie.split(';');
+      for(let i = 0; i <ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) == ' ') {
+          c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+          return c.substring(name.length, c.length);
+        }
+      }
+      return "";
+    }
+    function doIt(){
+      var cookiekey=getCookie("key"),
+          key=cookiekey==""?prompt("access key:"):cookiekey,
+          touching=false,
+          origpos=[Math.round(window.innerWidth/2),Math.round(window.innerHeight/2)];
+      if(key==null||key=="")return;
+      setCookie("key",key,5.5);
+      setInterval(()=>{
+        if(getCookie("key")!="")setCookie("key",key,5.5);
+      },1000);
+      window.onresize=function(e){
+        if(!touching)origpos=[Math.round(window.innerWidth/2),Math.round(window.innerHeight/2)];
+      };
+      window.ongesturestart=function(e){
+        e.preventDefault();
+        return false;
+      };
+      window.ontouchstart=function(e){
+        e.preventDefault();
+        if(!touching){
+          touching=true;
+          origpos=[Math.round(e.touches[0].clientX),Math.round(e.touches[0].clientY)];
+        }
+        return false;
+      };
+      window.ontouchend=function(e){
+        e.preventDefault();
+        if(e.touches.length==0){
+          touching=false;
+          origpos=[Math.round(window.innerWidth/2),Math.round(window.innerHeight/2)];
+        }
+        return false;
+      };
+      window.ontouchmove=function(e){
+        e.preventDefault();
+        var center=[e.touches[0].clientX,e.touches[0].clientY];
+        for(var i=1;i<e.touches.length;i++){
+          center[0]+=e.touches[i].clientX;
+          center[1]+=e.touches[i].clientY;
+          center[0]/=2;
+          center[1]/=2;
+        }
+        center[0]=Math.round(center[0]);
+        center[1]=Math.round(center[1]);
+        var final=[origpos[0]-center[0],origpos[1]-center[1]];
+        final[0]=Math.round(final[0]/5);
+        final[1]=Math.round(final[1]/5);
+        origpos=center;
+        //for now, only vertical is supported
+        fetch("/scroll?"+key+";"+final[1]);
+        return false;
+      };
+    }
+    doIt();
+  </script>
+</body>
+</html>
