@@ -81,7 +81,7 @@
         final[1]=Math.round(final[1]/5);
         origpos=center;
         //for now, only vertical is supported
-        fetch("/scroll?"+key+";"+final[1]);
+        if(final[1]!=0)fetch("/scroll?"+key+";"+final[1]);
         return false;
       };
     }
