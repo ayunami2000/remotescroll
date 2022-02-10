@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="target-densitydpi=device-dpi,width=device-width,user-scalable=no,maximum-scale=1,minimum-scale=1">
+  <meta name="apple-mobile-web-app-title" content="remotescroll">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-touch-fullscreen" content="yes">
   <title>remotescroll</title>
   <style>
     *{overflow:hidden;overscroll-behavior:contain;touch-action:none;}
@@ -49,8 +55,19 @@
         e.preventDefault();
         return false;
       };
+      var twoFingerClick=0;
+      var twoFingerTimeout=-1;
       window.ontouchstart=function(e){
         e.preventDefault();
+        if(e.touches.length==1&&twoFingerClick==0){
+          twoFingerClick=1;
+          clearTimeout(twoFingerTimeout);
+          twoFingerTimeout=setTimeout(()=>twoFingerClick=0,100);
+        }else if(e.touches.length==2&&twoFingerClick!=2){
+          twoFingerClick=2;
+          clearTimeout(twoFingerTimeout);
+          twoFingerTimeout=setTimeout(()=>twoFingerClick=0,100);
+        }
         if(!touching){
           touching=true;
           origpos=[Math.round(e.touches[0].clientX),Math.round(e.touches[0].clientY)];
@@ -62,11 +79,20 @@
         if(e.touches.length==0){
           touching=false;
           origpos=[Math.round(window.innerWidth/2),Math.round(window.innerHeight/2)];
+          if(twoFingerClick==1){
+            fetch("/scroll?"+key+";0;0;0");
+          }else if(twoFingerClick==2){
+            fetch("/scroll?"+key+";2;0;0");
+          }
+          twoFingerClick=0;
+          clearTimeout(twoFingerTimeout);
         }
         return false;
       };
       window.ontouchmove=function(e){
         e.preventDefault();
+        clearTimeout(twoFingerTimeout);
+        twoFingerClick=0;
         var center=[e.touches[0].clientX,e.touches[0].clientY];
         for(var i=1;i<e.touches.length;i++){
           center[0]+=e.touches[i].clientX;
@@ -77,11 +103,17 @@
         center[0]=Math.round(center[0]);
         center[1]=Math.round(center[1]);
         var final=[origpos[0]-center[0],origpos[1]-center[1]];
-        final[0]=Math.round(final[0]/5);
-        final[1]=Math.round(final[1]/5);
         origpos=center;
-        //for now, only vertical is supported
-        if(final[1]!=0)fetch("/scroll?"+key+";"+final[1]);
+        if(e.touches.length==1){
+          //final[0]=Math.round(3*final[0]/4);
+          //final[1]=Math.round(3*final[1]/4);
+          if(final[0]!=0||final[1]!=0)fetch("/scroll?"+key+";"+final[0]+";"+final[1]);
+        }else{
+          final[0]=Math.round(final[0]/5);
+          final[1]=Math.round(final[1]/5);
+          //for now, only vertical is supported
+          if(final[1]!=0)fetch("/scroll?"+key+";"+final[1]);
+        }
         return false;
       };
     }
